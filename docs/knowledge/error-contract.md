@@ -1,6 +1,6 @@
 ---
 type: convention
-title: Errors are {"error": {"code", "message"}} with stable codes
+title: 'Errors are {"error": {"code", "message"}} with stable codes'
 description: Every API error uses this shape, and codes are stable identifiers clients branch on, so they are never renamed.
 tags: [core, api, errors]
 status: stable
