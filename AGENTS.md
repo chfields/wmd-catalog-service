@@ -16,6 +16,10 @@ set (the repository declares `postgres: "16"` in `.wardby/services.yaml`).
 Locally, tests default to `postgresql://wmd:wmd@localhost:55440/wmd`. Each test
 gets its own schema, so tests can't see each other's data.
 
+## Architecture knowledge
+
+See [docs/knowledge/index.md](docs/knowledge/index.md).
+
 ## Rules
 
 - **Data:** the service owns one schema (`catalog`). Change it only with a new
