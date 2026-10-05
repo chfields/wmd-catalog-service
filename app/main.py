@@ -12,6 +12,7 @@ from app.db import Database, database_from_env
 from app.observability import ApiError, configure_logging, install
 
 SERVICE = "catalog-service"
+LOW_STOCK_THRESHOLD = 5
 
 
 class Product(BaseModel):
@@ -21,6 +22,7 @@ class Product(BaseModel):
     priceCents: int
     stock: int
     available: bool
+    lowStock: bool
 
 
 class ReservationItem(BaseModel):
@@ -55,6 +57,7 @@ def _product(row: dict) -> Product:
         priceCents=row["price_cents"],
         stock=row["stock"],
         available=row["stock"] > 0,
+        lowStock=0 < row["stock"] <= LOW_STOCK_THRESHOLD,
     )
 
 
