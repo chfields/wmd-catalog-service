@@ -15,6 +15,7 @@ def test_lists_seeded_products_by_name_with_availability(client):
         "stock": 0,
         "available": False,
         "lowStock": False,
+        "restockDate": None,
     }
 
 
@@ -29,12 +30,28 @@ def test_filters_by_name_or_description_case_insensitively(client):
 
 
 def test_gets_one_product_or_a_404_with_a_code(client):
-    assert client.get("/v1/products/sku-coffee").json()["priceCents"] == 899
+    product = client.get("/v1/products/sku-coffee").json()
+    assert product["priceCents"] == 899
+    assert product["restockDate"] is None
     missing = client.get("/v1/products/sku-caviar")
     assert missing.status_code == 404
     assert missing.json() == {
         "error": {"code": "unknown_product", "message": "No product sku-caviar."}
     }
+
+
+def test_returns_restock_date_for_list_and_single_product_routes(client, database):
+    with database.connect() as conn:
+        conn.execute(
+            "update products set restock_date = %s where id = %s",
+            ("2026-10-20", "sku-eggs"),
+        )
+
+    listed = next(
+        product for product in client.get("/v1/products").json() if product["id"] == "sku-eggs"
+    )
+    assert listed["restockDate"] == "2026-10-20"
+    assert client.get("/v1/products/sku-eggs").json()["restockDate"] == "2026-10-20"
 
 
 def test_reports_low_stock_boundaries_for_list_and_single_product_routes(client, database):
