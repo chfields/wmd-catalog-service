@@ -14,6 +14,7 @@ def test_lists_seeded_products_by_name_with_availability(client):
         "priceCents": 549,
         "stock": 0,
         "available": False,
+        "lowStock": False,
     }
 
 
@@ -34,6 +35,28 @@ def test_gets_one_product_or_a_404_with_a_code(client):
     assert missing.json() == {
         "error": {"code": "unknown_product", "message": "No product sku-caviar."}
     }
+
+
+def test_reports_low_stock_boundaries_for_list_and_single_product_routes(client, database):
+    stocks = {
+        "sku-eggs": 0,
+        "sku-coffee": 1,
+        "sku-bagels": 5,
+        "sku-oat-milk": 6,
+        "sku-berries": 15,
+        "sku-granola": 40,
+    }
+    with database.connect() as conn:
+        for product_id, stock in stocks.items():
+            conn.execute("update products set stock = %s where id = %s", (stock, product_id))
+
+    expected = {product_id: 0 < stock <= 5 for product_id, stock in stocks.items()}
+    listed = {product["id"]: product["lowStock"] for product in client.get("/v1/products").json()}
+    assert listed == expected
+    assert {
+        product_id: client.get(f"/v1/products/{product_id}").json()["lowStock"]
+        for product_id in stocks
+    } == expected
 
 
 def test_reserves_stock_and_prices_the_lines(client):

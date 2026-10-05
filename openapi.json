@@ -28,6 +28,10 @@
             "title": "Id",
             "type": "string"
           },
+          "lowStock": {
+            "title": "Lowstock",
+            "type": "boolean"
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -47,7 +51,8 @@
           "description",
           "priceCents",
           "stock",
-          "available"
+          "available",
+          "lowStock"
         ],
         "title": "Product",
         "type": "object"
