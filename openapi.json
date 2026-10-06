@@ -243,6 +243,22 @@
               ],
               "title": "Q"
             }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "featured",
+              "enum": [
+                "featured",
+                "price_asc",
+                "price_desc",
+                "name_asc"
+              ],
+              "title": "Sort",
+              "type": "string"
+            }
           }
         ],
         "responses": {

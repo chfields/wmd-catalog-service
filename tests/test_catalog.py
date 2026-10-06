@@ -29,6 +29,92 @@ def test_filters_by_name_or_description_case_insensitively(client):
     assert client.get("/v1/products", params={"q": "caviar"}).json() == []
 
 
+def test_sorts_products(client):
+    expected_ids = {
+        "featured": [
+            "sku-coffee",
+            "sku-bagels",
+            "sku-eggs",
+            "sku-granola",
+            "sku-berries",
+            "sku-oat-milk",
+        ],
+        "price_asc": [
+            "sku-oat-milk",
+            "sku-eggs",
+            "sku-bagels",
+            "sku-granola",
+            "sku-berries",
+            "sku-coffee",
+        ],
+        "price_desc": [
+            "sku-coffee",
+            "sku-berries",
+            "sku-granola",
+            "sku-bagels",
+            "sku-eggs",
+            "sku-oat-milk",
+        ],
+        "name_asc": [
+            "sku-coffee",
+            "sku-bagels",
+            "sku-eggs",
+            "sku-granola",
+            "sku-berries",
+            "sku-oat-milk",
+        ],
+    }
+
+    for sort, expected in expected_ids.items():
+        response = client.get("/v1/products", params={"sort": sort})
+        assert response.status_code == 200
+        assert [product["id"] for product in response.json()] == expected
+
+
+def test_uses_featured_order_without_a_sort_or_with_an_empty_sort(client):
+    featured = client.get("/v1/products", params={"sort": "featured"}).json()
+
+    assert client.get("/v1/products").json() == featured
+    assert client.get("/v1/products", params={"sort": ""}).json() == featured
+
+
+def test_filters_then_sorts_products(client):
+    response = client.get("/v1/products", params={"q": "b", "sort": "price_desc"})
+
+    assert [product["id"] for product in response.json()] == [
+        "sku-coffee",
+        "sku-berries",
+        "sku-bagels",
+        "sku-oat-milk",
+    ]
+
+
+def test_breaks_price_ties_by_name_then_id(client, database):
+    with database.connect() as conn:
+        conn.execute("update products set price_cents = 100")
+        conn.execute("update products set name = 'Same' where id in ('sku-coffee', 'sku-bagels')")
+
+    response = client.get("/v1/products", params={"sort": "price_asc"})
+
+    assert [product["id"] for product in response.json()] == [
+        "sku-eggs",
+        "sku-granola",
+        "sku-berries",
+        "sku-oat-milk",
+        "sku-bagels",
+        "sku-coffee",
+    ]
+
+
+def test_rejects_an_unknown_product_sort(client):
+    response = client.get("/v1/products", params={"sort": "newest"})
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "error": {"code": "invalid_request", "message": "Invalid sort value: newest."}
+    }
+
+
 def test_gets_one_product_or_a_404_with_a_code(client):
     assert client.get("/v1/products/sku-coffee").json()["priceCents"] == 899
     missing = client.get("/v1/products/sku-caviar")
