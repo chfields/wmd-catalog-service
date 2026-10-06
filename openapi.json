@@ -40,6 +40,18 @@
             "title": "Pricecents",
             "type": "integer"
           },
+          "restockDate": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restockdate"
+          },
           "stock": {
             "title": "Stock",
             "type": "integer"
