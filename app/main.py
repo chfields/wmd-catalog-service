@@ -14,6 +14,12 @@ from app.observability import ApiError, configure_logging, install
 
 SERVICE = "catalog-service"
 LOW_STOCK_THRESHOLD = 5
+PRODUCT_SORT_ORDERS = {
+    "featured": "name",
+    "price_asc": "price_cents asc, name asc, id asc",
+    "price_desc": "price_cents desc, name asc, id asc",
+    "name_asc": "name asc, id asc",
+}
 
 
 class Product(BaseModel):
@@ -77,14 +83,21 @@ def create_app(db: Database | None = None, *, migrate: bool = True) -> FastAPI:
     install(app, database.ping)
 
     @app.get("/v1/products", response_model=list[Product])
-    def list_products(q: str | None = Query(default=None, max_length=100)) -> list[Product]:
+    def list_products(
+        q: str | None = Query(default=None, max_length=100),
+        sort: str = Query(default="featured", enum=list(PRODUCT_SORT_ORDERS)),
+    ) -> list[Product]:
+        sort = sort or "featured"
+        order_by = PRODUCT_SORT_ORDERS.get(sort)
+        if order_by is None:
+            raise ApiError(400, "invalid_request", f"Invalid sort value: {sort}.")
         with database.connect() as conn:
             rows = conn.execute(
                 "select id, name, description, price_cents, stock, restock_date from products"
                 " where %(q)s::text is null"
                 "    or name ilike '%%' || %(q)s || '%%'"
                 "    or description ilike '%%' || %(q)s || '%%'"
-                " order by name",
+                f" order by {order_by}",
                 {"q": q or None},
             ).fetchall()
         return [_product(row) for row in rows]
