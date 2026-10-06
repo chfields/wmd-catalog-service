@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from contextlib import asynccontextmanager
+from datetime import date
 
 from fastapi import FastAPI, Query
 from pydantic import BaseModel, Field
@@ -23,6 +24,7 @@ class Product(BaseModel):
     stock: int
     available: bool
     lowStock: bool
+    restockDate: date | None = None
 
 
 class ReservationItem(BaseModel):
@@ -58,6 +60,7 @@ def _product(row: dict) -> Product:
         stock=row["stock"],
         available=row["stock"] > 0,
         lowStock=0 < row["stock"] <= LOW_STOCK_THRESHOLD,
+        restockDate=row["restock_date"],
     )
 
 
@@ -77,7 +80,7 @@ def create_app(db: Database | None = None, *, migrate: bool = True) -> FastAPI:
     def list_products(q: str | None = Query(default=None, max_length=100)) -> list[Product]:
         with database.connect() as conn:
             rows = conn.execute(
-                "select id, name, description, price_cents, stock from products"
+                "select id, name, description, price_cents, stock, restock_date from products"
                 " where %(q)s::text is null"
                 "    or name ilike '%%' || %(q)s || '%%'"
                 "    or description ilike '%%' || %(q)s || '%%'"
@@ -90,7 +93,8 @@ def create_app(db: Database | None = None, *, migrate: bool = True) -> FastAPI:
     def get_product(product_id: str) -> Product:
         with database.connect() as conn:
             row = conn.execute(
-                "select id, name, description, price_cents, stock from products where id = %s",
+                "select id, name, description, price_cents, stock, restock_date"
+                " from products where id = %s",
                 (product_id,),
             ).fetchone()
         if row is None:
