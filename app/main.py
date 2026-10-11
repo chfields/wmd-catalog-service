@@ -13,6 +13,7 @@ from app.db import Database, database_from_env
 from app.observability import ApiError, configure_logging, install
 
 SERVICE = "catalog-service"
+VERSION = "1.0.0"
 LOW_STOCK_THRESHOLD = 5
 PRODUCT_SORT_ORDERS = {
     "featured": "name",
@@ -79,8 +80,12 @@ def create_app(db: Database | None = None, *, migrate: bool = True) -> FastAPI:
             database.migrate()
         yield
 
-    app = FastAPI(title="wmd catalog-service", version="1.0.0", lifespan=lifespan)
+    app = FastAPI(title="wmd catalog-service", version=VERSION, lifespan=lifespan)
     install(app, database.ping)
+
+    @app.get("/health")
+    def health() -> dict[str, str]:
+        return {"service": "wmd-catalog", "version": VERSION, "status": "ok"}
 
     @app.get("/v1/products", response_model=list[Product])
     def list_products(

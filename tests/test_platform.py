@@ -1,5 +1,23 @@
 """Every service: health, readiness, metrics and a correlation id on every response."""
 
+import tomllib
+from pathlib import Path
+
+
+def test_health_returns_service_version_and_correlation_id(client):
+    with (Path(__file__).parent.parent / "pyproject.toml").open("rb") as pyproject:
+        version = tomllib.load(pyproject)["project"]["version"]
+
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "service": "wmd-catalog",
+        "version": version,
+        "status": "ok",
+    }
+    assert response.headers["x-correlation-id"]
+
 
 def test_health_and_readiness(client):
     assert client.get("/healthz").json() == {"status": "ok"}
