@@ -15,3 +15,4 @@ The full contract is [`openapi.json`](openapi.json). See [`AGENTS.md`](AGENTS.md
 for how to run and change it.
 
 Configuration: `DATABASE_URL` (required), `DB_SCHEMA` (default `catalog`).
+Test only: this line checks one coding agent working across repositories. Do not merge.
